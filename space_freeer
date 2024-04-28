@@ -1,0 +1,47 @@
+#!/bin/bash
+
+# Update package lists and remove unnecessary packages
+echo "Updating package lists and removing unnecessary packages..."
+sudo apt update
+sudo apt autoremove -y
+
+# Clean up cached packages
+echo "Cleaning up cached packages..."
+sudo apt clean
+
+# Remove old apt archives
+echo "Removing old versions of snap packages..."
+sudo du -sh /var/cache/apt/archives
+
+sudo journalctl --vacuum-time=3d
+# Clean up old snap revisions
+echo "Cleaning up old snap revisions..."
+set -eu
+
+snap list --all | awk '$2=="disabled" {print $1, $3}' |
+    while read snapname revision; do
+        # Remove the snap revision
+        snap remove "$snapname" --revision="$revision"
+    done
+#Remove old docker unused images and containers
+docker system df
+
+docker system prune
+
+docker image prune -a
+
+
+# Remove old versions of flatpak packages
+echo "Removing old versions of flatpak packages..."
+flatpak uninstall --unused -y
+
+# Clean up temporary files
+echo "Cleaning up temporary files..."
+sudo rm -rf /tmp/*
+
+# Clean up thumbnails cache
+echo "Cleaning up thumbnails cache..."
+rm -rf ~/.cache/thumbnails/*
+
+# Done
+echo "Disk cleanup complete!"
